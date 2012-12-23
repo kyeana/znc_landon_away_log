@@ -17,9 +17,8 @@ class LandonAwayLog: public CModule {
 public:
     MODCONSTRUCTOR(LandonAwayLog) {}
 
-    /* Methods for setting the away status to away or here */
-    void Away();
-    void Here();
+    // Set the away status
+    void SetAwayStatus();
 
     // Module first load
     virtual bool OnLoad(const CString& sArgs, CString& sMessage);
@@ -30,11 +29,16 @@ public:
     // When a client lgos in, send them any saved messages we have
     virtual void CModule::OnClientLogin();
 
+    // TODO - have commands to this module to set the away status
+
 private:
     bool away;                  // Flag for if you are away
     std::vector savedMessages;  // Saved messages
 };
 
+bool LandonAwayLog::OnLoad(const CString& sArgs, CString& sMessage) {
+    away = false;
+}
 
 void LandonAwayLog::SetAwayStatus(bool status) {
     away = status;
@@ -42,14 +46,10 @@ void LandonAwayLog::SetAwayStatus(bool status) {
         savedMessages.clear();
 }
 
-bool LandonAwayLog::OnLoad(const CString& sArgs, CString& sMessage) {
-    away = false;
-}
-
 void LandonAwayLog::OnClientLogin() {
     if(away == true) {
         for (unsigned i=0; i<savedMessages.size(); i++) {
-            broadcast(savedMessages.at(i));
+            CModule::PutModNotice(savedMessages.at(i));
         }
     }
 }
@@ -57,7 +57,7 @@ void LandonAwayLog::OnClientLogin() {
 CModule::EModRet LandonAwayLog::OnPrivMsg(CNick& Nick, CString& sMessage) {
     // If the pm comes from this log, ignore it so we don't get compound away messages
     if(Nick.GetNick() != 'landon_away_message') {
-        savedMessages.put("<" + Nick.GetNick() + "> " + sMessage);
+        savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
     }
     return CONTINUE;
 }
