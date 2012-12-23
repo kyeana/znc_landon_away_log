@@ -18,7 +18,7 @@ public:
     MODCONSTRUCTOR(LandonAwayLog) {}
 
     // Set the away status
-    void SetAwayStatus();
+    void ToggleAway();
 
     // Module first load
     virtual bool OnLoad(const CString& sArgs, CString& sMessage);
@@ -29,8 +29,6 @@ public:
     // When a client lgos in, send them any saved messages we have
     virtual void CModule::OnClientLogin();
 
-    // TODO - have commands to this module to set the away status
-
 private:
     bool away;                  // Flag for if you are away
     std::vector savedMessages;  // Saved messages
@@ -38,10 +36,14 @@ private:
 
 bool LandonAwayLog::OnLoad(const CString& sArgs, CString& sMessage) {
     away = false;
+
+    // Setup the away commands
+    CModule::AddCommand("away", *ToggleAway(), "no args",
+                        "switches the away status, from away to here or vice versa");
 }
 
-void LandonAwayLog::SetAwayStatus(bool status) {
-    away = status;
+void LandonAwayLog::ToggleAway() {
+    away = !away;
     if(away == false)
         savedMessages.clear();
 }
@@ -51,14 +53,16 @@ void LandonAwayLog::OnClientLogin() {
         for (unsigned i=0; i<savedMessages.size(); i++) {
             CModule::PutModNotice(savedMessages.at(i));
         }
+
+        // Once the messages have been relayed once, clear them so
+        //that they don't get continually sent (if a phone is constently
+        // disconnecting and reconnection for example)
+        savedMessages.clear();
     }
 }
 
 CModule::EModRet LandonAwayLog::OnPrivMsg(CNick& Nick, CString& sMessage) {
-    // If the pm comes from this log, ignore it so we don't get compound away messages
-    if(Nick.GetNick() != 'landon_away_message') {
-        savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
-    }
+    savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
     return CONTINUE;
 }
 
@@ -68,4 +72,4 @@ template<> void TModInfo<LandonAwayLog>(CModInfo& Info) {
     Info.SetHasArgs(false);
 }
 
-USERMODULEDEFS(LandonAwayLog, "Save PM's while marked as away")
+USERMODULEDEFS(LandonAwayLog, "Save and deliver PMs on connect while marked as away")
