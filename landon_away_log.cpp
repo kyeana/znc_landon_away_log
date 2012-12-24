@@ -28,29 +28,32 @@ public:
         return true;
     }
 
-    // Set the away status
+    // Toggle away away status. This will change it to away if currently here, and
+    // vice versa. sLine is unused, but requried to give this as a function pointer
+    // to AddCommand()
     void ToggleAway(const CString& sLine) {
         away = !away;
         if(away == false)
             savedMessages.clear();
     }
 
-    // On PM handler
+    // Save PMs if away
     virtual EModRet OnPrivMsg(CNick& Nick, CString& sMessage) {
-        savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
+        if(away == true)
+            savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
         return CONTINUE;
     }
 
-    // When a client lgos in, send them any saved messages we have
+    // When a client logs in, send them any saved messages we have
+    // Once the messages have been relayed once, clear them so
+    // that they don't get continually sent (if a phone is constently
+    // disconnecting and reconnection for example)
     virtual void OnClientLogin() {
         if(away == true) {
             for (unsigned i=0; i<savedMessages.size(); i++) {
                 CModule::PutModNotice(savedMessages.at(i));
             }
 
-            // Once the messages have been relayed once, clear them so
-            //that they don't get continually sent (if a phone is constently
-            // disconnecting and reconnection for example)
             savedMessages.clear();
         }
     }
