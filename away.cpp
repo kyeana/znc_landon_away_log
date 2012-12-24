@@ -23,18 +23,25 @@ public:
         away = false;
 
         // Setup the away commands
-        CModule::AddCommand("away", static_cast<CModCommand::ModCmdFunc>(&LandonAwayLog::ToggleAway));
+        CModule::AddCommand("away", static_cast<CModCommand::ModCmdFunc>(&LandonAwayLog::SetAway));
+        CModule::AddCommand("back", static_cast<CModCommand::ModCmdFunc>(&LandonAwayLog::SetBack));
 
         return true;
     }
 
-    // Toggle away away status. This will change it to away if currently here, and
-    // vice versa. sLine is unused, but requried to give this as a function pointer
-    // to AddCommand()
-    void ToggleAway(const CString& sLine) {
-        away = !away;
-        if(away == false)
-            savedMessages.clear();
+    // Set status to away. sLine is unused, but requried to give this as
+    // a function pointer to AddCommand()
+    void SetAway(const CString& sLine) {
+        away = true;
+        PutModule("Set to away");
+    }
+
+    // Set status to not away. sLine is unused, but requried to give this as
+    // a function pointer to AddCommand()
+    void SetBack(const CString& sLine) {
+        away = false
+        savedMessages.clear();
+        PutModule("No longer away");
     }
 
     // Save PMs if away
@@ -51,9 +58,8 @@ public:
     virtual void OnClientLogin() {
         if(away == true) {
             for (unsigned i=0; i<savedMessages.size(); i++) {
-                CModule::PutModNotice(savedMessages.at(i));
+                PutModule(savedMessages.at(i));
             }
-
             savedMessages.clear();
         }
     }
