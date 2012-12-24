@@ -39,7 +39,7 @@ public:
     // Set status to not away. sLine is unused, but requried to give this as
     // a function pointer to AddCommand()
     void SetBack(const CString& sLine) {
-        away = false
+        away = false;
         savedMessages.clear();
         PutModule("No longer away");
     }
