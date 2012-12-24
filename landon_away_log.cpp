@@ -14,57 +14,51 @@
 #include <znc/Server.h>
 
 class LandonAwayLog: public CModule {
+
 public:
     MODCONSTRUCTOR(LandonAwayLog) {}
 
-    // Set the away status
-    void ToggleAway();
-
     // Module first load
-    virtual bool OnLoad(const CString& sArgs, CString& sMessage);
+    virtual bool OnLoad(const CString& sArgs, CString& sMessage) {
+        away = false;
+
+        // Setup the away commands
+        CModule::AddCommand("away", static_cast<CModCommand::ModCmdFunc>(&LandonAwayLog::ToggleAway));
+
+        return true;
+    }
+
+    // Set the away status
+    void ToggleAway(const CString& sLine) {
+        away = !away;
+        if(away == false)
+            savedMessages.clear();
+    }
 
     // On PM handler
-    virtual EModRet OnPrivMsg(CNick& Nick, CString& sMessage);
+    virtual EModRet OnPrivMsg(CNick& Nick, CString& sMessage) {
+        savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
+        return CONTINUE;
+    }
 
     // When a client lgos in, send them any saved messages we have
-    virtual void CModule::OnClientLogin();
+    virtual void OnClientLogin() {
+        if(away == true) {
+            for (unsigned i=0; i<savedMessages.size(); i++) {
+                CModule::PutModNotice(savedMessages.at(i));
+            }
+
+            // Once the messages have been relayed once, clear them so
+            //that they don't get continually sent (if a phone is constently
+            // disconnecting and reconnection for example)
+            savedMessages.clear();
+        }
+    }
 
 private:
     bool away;                  // Flag for if you are away
-    std::vector savedMessages;  // Saved messages
+    std::vector<CString> savedMessages;  // Saved messages
 };
-
-bool LandonAwayLog::OnLoad(const CString& sArgs, CString& sMessage) {
-    away = false;
-
-    // Setup the away commands
-    CModule::AddCommand("away", *ToggleAway(), "no args",
-                        "switches the away status, from away to here or vice versa");
-}
-
-void LandonAwayLog::ToggleAway() {
-    away = !away;
-    if(away == false)
-        savedMessages.clear();
-}
-
-void LandonAwayLog::OnClientLogin() {
-    if(away == true) {
-        for (unsigned i=0; i<savedMessages.size(); i++) {
-            CModule::PutModNotice(savedMessages.at(i));
-        }
-
-        // Once the messages have been relayed once, clear them so
-        //that they don't get continually sent (if a phone is constently
-        // disconnecting and reconnection for example)
-        savedMessages.clear();
-    }
-}
-
-CModule::EModRet LandonAwayLog::OnPrivMsg(CNick& Nick, CString& sMessage) {
-    savedMessages.push_back("<" + Nick.GetNick() + "> " + sMessage);
-    return CONTINUE;
-}
 
 template<> void TModInfo<LandonAwayLog>(CModInfo& Info) {
     Info.AddType(CModInfo::NetworkModule);
